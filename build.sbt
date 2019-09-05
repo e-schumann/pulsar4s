@@ -9,6 +9,7 @@ lazy val root = Project("pulsar4s", file("."))
     monix,
     jackson,
     circe,
+    avro,
     playjson,
     sprayjson,
     json4s,
@@ -32,8 +33,8 @@ lazy val cats_effect = Project("pulsar4s-cats-effect", file("pulsar4s-cats-effec
 lazy val scalaz = Project("pulsar4s-scalaz", file("pulsar4s-scalaz"))
   .settings(name := "pulsar4s-scalaz")
   .settings(libraryDependencies ++= Seq(
-    "org.scalaz" %% "scalaz-core" % "7.2.27",
-    "org.scalaz" %% "scalaz-concurrent" % "7.2.27"
+    "org.scalaz" %% "scalaz-core" % "7.2.28",
+    "org.scalaz" %% "scalaz-concurrent" % "7.2.28"
   ))
   .dependsOn(core)
 
@@ -47,9 +48,10 @@ lazy val monix = Project("pulsar4s-monix", file("pulsar4s-monix"))
 lazy val jackson = Project("pulsar4s-jackson", file("pulsar4s-jackson"))
   .settings(name := "pulsar4s-jackson")
   .settings(libraryDependencies ++= Seq(
+    // For 2.9 releases see https://github.com/FasterXML/jackson/wiki/Jackson-Release-2.9#micro-patches
     "com.fasterxml.jackson.core"    % "jackson-core"          % JacksonVersion,
     "com.fasterxml.jackson.core"    % "jackson-annotations"   % JacksonVersion,
-    "com.fasterxml.jackson.core"    % "jackson-databind"      % JacksonVersion,
+    "com.fasterxml.jackson.core"    % "jackson-databind"      % s"$JacksonVersion.3",
     "com.fasterxml.jackson.module" %% "jackson-module-scala"  % JacksonVersion
   ))
   .dependsOn(core)
@@ -82,6 +84,13 @@ lazy val sprayjson = Project("pulsar4s-spray-json", file("pulsar4s-spray-json"))
   .settings(name := "pulsar4s-spray-json")
   .settings(libraryDependencies ++= Seq(
     "io.spray" %% "spray-json" % SprayJsonVersion
+  ))
+  .dependsOn(core)
+
+lazy val avro = Project("pulsar4s-avro", file("pulsar4s-avro"))
+  .settings(name := "pulsar4s-avro")
+  .settings(libraryDependencies ++= Seq(
+    "com.sksamuel.avro4s" %% "avro4s-core" % Avro4sVersion
   ))
   .dependsOn(core)
 

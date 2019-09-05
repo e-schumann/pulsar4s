@@ -27,4 +27,7 @@ esdata
 *.sublime-project
 *.sublime-workspace
 
-data/standalone
+.bloop
+.metals
+
+data/

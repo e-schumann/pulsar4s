@@ -12,6 +12,7 @@ import com.sksamuel.exts.Logging
 import com.sksamuel.pulsar4s.Consumer
 import com.sksamuel.pulsar4s.ConsumerMessage
 import com.sksamuel.pulsar4s.MessageId
+import org.apache.pulsar.client.api.ConsumerStats
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -20,6 +21,7 @@ import scala.util.Success
 
 trait CommittableMessage[T] {
   def ack(cumulative: Boolean = false): Future[Done]
+  def nack(): Future[Done]
   def message: ConsumerMessage[T]
 }
 
@@ -30,7 +32,7 @@ class PulsarCommittableSourceGraphStage[T](create: () => Consumer[T], seek: Opti
   private val out = Outlet[CommittableMessage[T]]("pulsar.out")
   override def shape: SourceShape[CommittableMessage[T]] = SourceShape(out)
 
-  private class PulsarCommittableSourceLogic(shape: Shape) extends GraphStageLogic(shape) with OutHandler {
+  private class PulsarCommittableSourceLogic(shape: Shape) extends GraphStageLogic(shape) with OutHandler with Control {
     setHandler(out, this)
 
     var consumer: Consumer[T] = _
@@ -61,20 +63,30 @@ class PulsarCommittableSourceGraphStage[T](create: () => Consumer[T], seek: Opti
               }
               ackFuture.map(_ => Done)
             }
+            override def nack(): Future[Done] = {
+              logger.debug(s"Negatively acknowledging message: $msg")
+              consumer.negativeAcknowledgeAsync(msg.messageId).map(_ => Done)
+            }
           })
         case Failure(e) =>
           logger.warn("Error when receiving message", e)
           failStage(e)
       }
     }
+
+    override def stop(): Unit = completeStage()
+
+    override def shutdown()(implicit ec: ExecutionContext): Future[Done] = {
+      completeStage()
+      consumer.closeAsync.map(_ => Done)
+    }
+
+    def stats: ConsumerStats = consumer.stats
   }
 
   override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): (GraphStageLogic, Control) = {
     val logic = new PulsarCommittableSourceLogic(shape)
-    val control = new Control {
-      override def close(): Unit = logic.completeStage()
-    }
-    (logic, control)
+    (logic, logic)
   }
 }
 
